@@ -1,85 +1,152 @@
 package AccountBook;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.Scanner;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
 
 public class AccountBook_SCV {
 
-    static int total = 0;
-    static String path = System.getProperty("user.dir") + File.separator + "accountBook";
+    static int total;
+    static ResultSet resultSet = null;
+    static String contents;
+    static BufferedReader bufferedWriter = new BufferedReader(new InputStreamReader(System.in));
+    static String sql;
+    static Connection connection = null;
+    static PreparedStatement preparedStatement = null;
+    static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-    public static void newFile(){
-        String os =System.getProperty("os.name").toLowerCase();
+    public static void dbConnection(){
+        String driver = "oracle.jdbc.OracleDriver";
+        String url = "jdbc:oracle:thin:@dumdum_medium?TNS_ADMIN=//Users/apple/Downloads/Wallet_dumdum";
+        String id = "admin";
+        String pw = "Tnqls072535@";
 
-        File folder = new File(path);
-        File file = new File(folder, "accountBook.txt");
-
-        if(os.contains("win")) {
-            System.out.println("OS : Windows");
-        } else if(os.contains("mac")) {
-            System.out.println("OS : Mac");
-        } else if(os.contains("nix")||os.contains("nux")||os.contains("aix")) {
-            System.out.println("OS : Unix");
-        } else if(os.contains("linux")) {
-            System.out.println("OS : Linux");
-        } else if(os.contains("sunos")) {
-            System.out.println("OS : Solaris");
+        // 드라이버 로딩
+        try {
+            Class.forName(driver);
+        }catch (Exception exception) {
+            System.out.println("드라이버 연결 실패");
+            exception.printStackTrace();
         }
 
-        if(!folder.exists()){
-            try{
-                folder.mkdir();
-                System.out.println("폴더가 생성되었습니다.");
-            } catch (Exception e){
-                e.printStackTrace();
-            }
+        // 커넥션 설정
+        try{
+            connection = DriverManager.getConnection(url, id, pw);
+        } catch (Exception exception){
+            System.out.println("커넥션 설정 실패");
+            exception.printStackTrace();
         }
+    }
 
-        if(!file.exists()){
-            try{
-                file.createNewFile();
-                System.out.println("정보가 생성되었습니다.");
-            } catch (Exception e){
-                e.printStackTrace();
+    public static void saveList(){
+
+        try {
+            System.out.println("입금된 내역을 입력하세요.");
+            System.out.print("> ");
+            contents = bufferedWriter.readLine().trim();
+            System.out.println("입금된 금액을 입력하세요.");
+            System.out.print("> ");
+            int saved = Integer.parseInt(bufferedWriter.readLine().trim());
+
+            sql = "SELECT  total, LAG(total) OVER (ORDER BY total) from ACCOUNTBOOK";
+            preparedStatement = connection.prepareStatement(sql);
+            resultSet = preparedStatement.executeQuery();
+            int lagTotal = resultSet.getInt("total");
+            int total = resultSet.getInt("total");
+            if(lagTotal == 0){
+                total = saved;
+            } else {
+                total += saved;
             }
-        } else {
-            System.out.println("저장된 정보가 이미 있습니다.");
+
+            sql = "INSERT into ACCOUNTBOOK (no, contents, used, saved, total, reg_date) ";
+            sql += " values (AccountBook_seq.nextval, ?, 0, ?, ? ,sysdate())";
+            preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setString(1, contents);
+            preparedStatement.setInt(2, saved);
+            preparedStatement.setInt(3, total);
+
+            int result = preparedStatement.executeUpdate();
+
+            if (result == 1) {
+                System.out.println("저장되었습니다.");
+            } else {
+                System.out.println("저장에 실패했습니다.");
+            }
+        } catch(Exception exception) {
+            exception.printStackTrace();
+        } finally {
+
+        }
+    }
+
+    public static void usedList(){
+        int used;
+
+        try {
+            //테이블에 저장할 값 입력받기
+            System.out.println("사용한 내역을 입력하세요.");
+            contents = bufferedWriter.readLine().trim();
+            System.out.println("사용한 금액을 입력하세요.");
+            used = Integer.parseInt(bufferedWriter.readLine().trim());
+
+            sql = "insert into AccountBook(no, contents, used, saved, total, reg_date) ";
+            sql += "values(AccountBook_seq.nextval, ?, 0, ?, ?, sysdate) ";
+
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+
+            preparedStatement.setString(1, contents);
+            preparedStatement.setInt(2, used);
+            preparedStatement.setInt(3,total);
+
+            int result = preparedStatement.executeUpdate();
+            resultSet = preparedStatement.executeQuery();
+
+            total = resultSet.getInt("total") - used;
+            System.out.println("잔액은 " + total + "원입니다.");
+
+            if (result == 1) {
+                System.out.println("저장되었습니다.");
+            } else {
+                System.out.println("저장에 실패했습니다.");
+            }
+
+        } catch (Exception exception){
+            exception.printStackTrace();
         }
 
     }
 
-    public static void saveList(Scanner scanner){
+    public static void selectList(){
 
-        String path2 = path + File.separator + "accountBook.txt";
-        ArrayList<String> list = new ArrayList<String>();
+        try{
 
-        try {
-            FileWriter fw = new FileWriter(path2);
-            BufferedWriter writer = new BufferedWriter(fw);
-
-            System.out.print("내용 > ");
-            String saveList = scanner.next();
-            list.add(0, saveList);
-
-            System.out.print("금액 > ");
-            String money1 = scanner.next();
-            list.add(1, money1);
-
-            int money2 = Integer.parseInt(list.get(1));
-            total += money2;
-
-            list.add(2, String.valueOf(total));
-
-            writer.write(String.valueOf(list));
-
-            writer.close();
-        } catch (Exception e){
-            e.printStackTrace();
+        } catch(Exception exception) {
+            exception.printStackTrace();
         }
+    }
 
+    public static void deleteList(){
+        String num;
+        try {
+            System.out.println("삭제할 내역의 번호를 입력하세요.");
+            num = bufferedWriter.readLine().trim();
+        } catch(Exception exception) {
+            exception.printStackTrace();
+        }
+    }
+
+    public static void deleteAllList(){
+        try {
+
+        } catch(Exception exception) {
+            exception.printStackTrace();
+        }
     }
 
 }
