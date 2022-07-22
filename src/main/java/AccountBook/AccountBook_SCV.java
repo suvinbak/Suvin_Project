@@ -2,12 +2,10 @@ package AccountBook;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.lang.annotation.ElementType;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.text.SimpleDateFormat;
 
 public class AccountBook_SCV {
 
@@ -18,7 +16,6 @@ public class AccountBook_SCV {
     static String sql;
     static Connection connection = null;
     static PreparedStatement preparedStatement = null;
-    static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public static void dbConnection(){
         String driver = "oracle.jdbc.OracleDriver";
@@ -53,7 +50,7 @@ public class AccountBook_SCV {
             System.out.print("> ");
             saved = Integer.parseInt(bufferedWriter.readLine().trim());
 
-            sql = "SELECT nvl(total,0), LAST_VALUE(total) OVER() as lagTotal from ACCOUNTBOOK";
+            sql = "SELECT LAST_VALUE(total) OVER() as lagTotal from ACCOUNTBOOK";
             preparedStatement = connection.prepareStatement(sql);
             resultSet = preparedStatement.executeQuery();
             while(resultSet.next()){
@@ -84,8 +81,6 @@ public class AccountBook_SCV {
             }
         } catch(Exception exception) {
             exception.printStackTrace();
-        } finally {
-
         }
     }
 
@@ -98,7 +93,7 @@ public class AccountBook_SCV {
             System.out.println("사용한 금액을 입력하세요.");
             used = Integer.parseInt(bufferedWriter.readLine().trim());
 
-            sql = "SELECT total, LAST_VALUE(total) OVER() as lagTotal from ACCOUNTBOOK";
+            sql = "SELECT LAST_VALUE(total) OVER() as lagTotal from ACCOUNTBOOK";
             preparedStatement = connection.prepareStatement(sql);
             resultSet = preparedStatement.executeQuery();
             while(resultSet.next()){
@@ -189,12 +184,12 @@ public class AccountBook_SCV {
 
         try {
             System.out.println("내역을 모두 삭제하시겠습니까? (y / n)");
-            System.out.println("> ");
+            System.out.print("> ");
 
             yn = bufferedWriter.readLine().trim();
 
             if(yn.equals("y")){
-                sql = "delete from ACCOUNTBOOK;";
+                sql = "delete from ACCOUNTBOOK";
                 preparedStatement = connection.prepareStatement(sql);
                 int result = preparedStatement.executeUpdate();
                 if(result == 1){
