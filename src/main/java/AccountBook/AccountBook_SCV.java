@@ -16,6 +16,7 @@ public class AccountBook_SCV {
     static String sql;
     static Connection connection = null;
     static PreparedStatement preparedStatement = null;
+    static int count = 0;
 
     public static void dbConnection(){
         String driver = "oracle.jdbc.OracleDriver";
@@ -50,27 +51,37 @@ public class AccountBook_SCV {
             System.out.print("> ");
             saved = Integer.parseInt(bufferedWriter.readLine().trim());
 
-            sql = "SELECT LAST_VALUE(total) OVER() as lagTotal from ACCOUNTBOOK";
+            sql = "SELECT COUNT(*) FROM ACCOUNTBOOK";
             preparedStatement = connection.prepareStatement(sql);
             resultSet = preparedStatement.executeQuery();
+
+            if(resultSet.next()){
+                count = resultSet.getInt("count(*)");
+            }
+
+            if(count == 0){
+                sql ="select NVL(total,0) as lagTotal FROM ACCOUNTBOOK RIGHT OUTER JOIN DUAL on total = 'total'";
+            } else {
+                sql = "SELECT LAST_VALUE(total) OVER() as lagTotal from ACCOUNTBOOK";
+            }
+
+            preparedStatement = connection.prepareStatement(sql);
+            resultSet = preparedStatement.executeQuery();
+
             while(resultSet.next()){
                 int lagTotal = resultSet.getInt("lagTotal");
-
-                if(lagTotal == 0){
-                    total = saved;
-                } else {
-                    total = lagTotal+saved;
-                }
+                total = lagTotal+saved;
             }
+
             System.out.println("잔액은 " + total + "원입니다.");
 
-            sql = "INSERT into ACCOUNTBOOK (no, contents, used, saved, total, reg_date) ";
-            sql += " values (AccountBook_seq.nextval, ?, 0, ?, ?, sysdate)";
-            preparedStatement = connection.prepareStatement(sql);
+            sql = "INSERT into ACCOUNTBOOK (no, contents, used, saved, total, reg_date)";
+            sql += " values (AccountBook_seq.nextval, ?, ?, ?, ?, sysdate)";
 
             preparedStatement.setString(1, contents);
-            preparedStatement.setInt(2, saved);
-            preparedStatement.setInt(3, total);
+            preparedStatement.setInt(2, 0);
+            preparedStatement.setInt(3, saved);
+            preparedStatement.setInt(4, total);
 
             int result = preparedStatement.executeUpdate();
 
@@ -89,8 +100,10 @@ public class AccountBook_SCV {
         try {
             //테이블에 저장할 값 입력받기
             System.out.println("사용한 내역을 입력하세요.");
+            System.out.print("> ");
             contents = bufferedWriter.readLine().trim();
             System.out.println("사용한 금액을 입력하세요.");
+            System.out.print("> ");
             used = Integer.parseInt(bufferedWriter.readLine().trim());
 
             sql = "SELECT LAST_VALUE(total) OVER() as lagTotal from ACCOUNTBOOK";
@@ -100,7 +113,7 @@ public class AccountBook_SCV {
                 int lagTotal = resultSet.getInt("lagTotal");
 
                 if(lagTotal == 0){
-                    total = used;
+                    total = -1*used;
                 } else {
                     total = lagTotal-used;
                 }
@@ -188,17 +201,17 @@ public class AccountBook_SCV {
 
             yn = bufferedWriter.readLine().trim();
 
-            if(yn.equals("y")){
+            if(yn.equals("y") || yn.equals("Y")){
                 sql = "delete from ACCOUNTBOOK";
                 preparedStatement = connection.prepareStatement(sql);
                 int result = preparedStatement.executeUpdate();
-                if(result == 1){
+                if(result != 0){
                     System.out.println("데이터가 모두 삭제되었습니다.");
                 } else {
                     System.out.println("데이터 삭제에 실패하였습니다.");
                 }
-            } else if(yn.equals("n")) {
-                System.out.println("내역을 삭제하지 않겠습니다.");
+            } else if(yn.equals("n") || yn.equals("N")) {
+                System.out.println("내역을 삭제하지 않았습니다.");
             } else {
                 System.out.println("잘못된 버튼을 누르셨습니다.");
             }
