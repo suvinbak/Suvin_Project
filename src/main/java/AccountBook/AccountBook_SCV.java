@@ -60,7 +60,7 @@ public class AccountBook_SCV {
             }
 
             if(count == 0){
-                sql ="select NVL(total,0) as lagTotal FROM ACCOUNTBOOK RIGHT OUTER JOIN DUAL on total = 'total'";
+                sql ="select NVL(total,0) as lagTotal FROM ACCOUNTBOOK RIGHT OUTER JOIN DUAL on total = 'total' ";
             } else {
                 sql = "SELECT LAST_VALUE(total) OVER() as lagTotal from ACCOUNTBOOK";
             }
@@ -75,13 +75,14 @@ public class AccountBook_SCV {
 
             System.out.println("잔액은 " + total + "원입니다.");
 
-            sql = "INSERT into ACCOUNTBOOK (no, contents, used, saved, total, reg_date)";
-            sql += " values (AccountBook_seq.nextval, ?, ?, ?, ?, sysdate)";
+            sql = "INSERT into ACCOUNTBOOK (no, contents, used, saved, total, reg_date) ";
+            sql += " values (AccountBook_seq.nextval, ?, 0, ?, ?, sysdate)";
+
+            preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setString(1, contents);
-            preparedStatement.setInt(2, 0);
-            preparedStatement.setInt(3, saved);
-            preparedStatement.setInt(4, total);
+            preparedStatement.setInt(2, saved);
+            preparedStatement.setInt(3, total);
 
             int result = preparedStatement.executeUpdate();
 
